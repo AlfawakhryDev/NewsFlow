@@ -1,0 +1,34 @@
+name: NewsFlow
+options:
+  bundleIdPrefix: com.alfawakhrydev
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  NewsFlow:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: NewsFlow
+        excludes:
+          - "**/*.md"
+    resources:
+      - path: NewsFlow/Persistence/NewsFlow.xcdatamodeld
+    settings:
+      base:
+        INFOPLIST_FILE: NewsFlow/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.alfawakhrydev.NewsFlow
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - sdk: SafariServices.framework
+      - sdk: CoreData.framework
