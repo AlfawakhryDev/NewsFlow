@@ -18,9 +18,10 @@ final class HeadlinesViewController: UIViewController {
 
     private lazy var tableView: UITableView = {
         let tv = UITableView(frame: .zero, style: .plain)
-        tv.separatorStyle = .none
+        tv.separatorStyle  = .none
         tv.backgroundColor = .systemGroupedBackground
-        tv.rowHeight = Constants.UI.cellHeight + 12
+        tv.rowHeight       = UITableView.automaticDimension
+        tv.estimatedRowHeight = Constants.UI.cellHeight + 12
         tv.translatesAutoresizingMaskIntoConstraints = false
         return tv
     }()
@@ -83,14 +84,13 @@ final class HeadlinesViewController: UIViewController {
             emptyStateView.bottomAnchor.constraint(equalTo: tableView.bottomAnchor),
         ])
 
-        // Category collection view
         categoryCollectionView.register(CategoryCollectionViewCell.self,
                                          forCellWithReuseIdentifier: CategoryCollectionViewCell.reuseID)
         categoryCollectionView.dataSource = self
         categoryCollectionView.delegate   = self
         categoryCollectionView.selectItem(at: IndexPath(item: 0, section: 0), animated: false, scrollPosition: [])
 
-        // Table view
+        tableView.register(FeaturedArticleCell.self, forCellReuseIdentifier: FeaturedArticleCell.reuseID)
         tableView.register(ArticleTableViewCell.self, forCellReuseIdentifier: ArticleTableViewCell.reuseID)
         tableView.register(ShimmerCell.self, forCellReuseIdentifier: ShimmerCell.reuseID)
         tableView.dataSource = self
@@ -128,9 +128,26 @@ final class HeadlinesViewController: UIViewController {
     // MARK: - Core Animation: staggered cell entry
     private func animateVisibleCells() {
         tableView.visibleCells.enumerated().forEach { index, cell in
-            guard let articleCell = cell as? ArticleTableViewCell else { return }
-            articleCell.animateIn(delay: Double(index) * 0.04)
+            switch cell {
+            case let c as FeaturedArticleCell:
+                c.alpha = 0; c.transform = CGAffineTransform(translationX: 0, y: 30)
+                UIView.animate(withDuration: 0.5, delay: 0,
+                               usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
+                    c.alpha = 1; c.transform = .identity
+                }
+            case let c as ArticleTableViewCell:
+                c.animateIn(delay: Double(index) * 0.04)
+            default: break
+            }
         }
+    }
+
+    // MARK: - Easter egg badge style
+    private func badgeInfo(for article: Article) -> (text: String, color: UIColor) {
+        if article.url == HeadlinesViewModel.easterEgg.url {
+            return ("🚨 BREAKING", .systemRed)
+        }
+        return ("FEATURED", Constants.UI.primaryColor)
     }
 }
 
@@ -144,13 +161,30 @@ extension HeadlinesViewController: UITableViewDataSource {
         if isLoading {
             return tableView.dequeueReusableCell(withIdentifier: ShimmerCell.reuseID, for: indexPath)
         }
-        let cell = tableView.dequeueReusableCell(withIdentifier: ArticleTableViewCell.reuseID, for: indexPath) as! ArticleTableViewCell
+
         let article = displayedArticles[indexPath.row]
-        cell.configure(with: article, isBookmarked: viewModel.isBookmarked(article))
-        cell.onBookmarkTap = { [weak self] in
-            self?.viewModel.toggleBookmark(for: article)
+
+        // First article → hero featured card
+        if indexPath.row == 0 {
+            let cell = tableView.dequeueReusableCell(withIdentifier: FeaturedArticleCell.reuseID,
+                                                     for: indexPath) as! FeaturedArticleCell
+            let badge = badgeInfo(for: article)
+            cell.configure(with: article, badge: badge.text, badgeColor: badge.color,
+                           isBookmarked: viewModel.isBookmarked(article))
+            cell.onBookmarkTap = { [weak self] in self?.viewModel.toggleBookmark(for: article) }
+            return cell
         }
+
+        let cell = tableView.dequeueReusableCell(withIdentifier: ArticleTableViewCell.reuseID,
+                                                  for: indexPath) as! ArticleTableViewCell
+        cell.configure(with: article, isBookmarked: viewModel.isBookmarked(article))
+        cell.onBookmarkTap = { [weak self] in self?.viewModel.toggleBookmark(for: article) }
         return cell
+    }
+
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        if !isLoading && indexPath.row == 0 { return FeaturedArticleCell.rowHeight }
+        return Constants.UI.cellHeight + 12
     }
 }
 
@@ -158,8 +192,7 @@ extension HeadlinesViewController: UITableViewDataSource {
 extension HeadlinesViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard !isLoading else { return }
-        let article = displayedArticles[indexPath.row]
-        let detail = ArticleDetailViewController(article: article)
+        let detail = ArticleDetailViewController(article: displayedArticles[indexPath.row])
         navigationController?.pushViewController(detail, animated: true)
     }
 
@@ -176,7 +209,8 @@ extension HeadlinesViewController: UICollectionViewDataSource {
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CategoryCollectionViewCell.reuseID, for: indexPath) as! CategoryCollectionViewCell
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CategoryCollectionViewCell.reuseID,
+                                                       for: indexPath) as! CategoryCollectionViewCell
         let cat = Constants.Categories.all[indexPath.item]
         cell.configure(title: cat.title, icon: cat.icon)
         return cell
@@ -186,7 +220,6 @@ extension HeadlinesViewController: UICollectionViewDataSource {
 // MARK: - UICollectionViewDelegate
 extension HeadlinesViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let category = Constants.Categories.all[indexPath.item].value
-        viewModel.load(category: category)
+        viewModel.load(category: Constants.Categories.all[indexPath.item].value)
     }
 }

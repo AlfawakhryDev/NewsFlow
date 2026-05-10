@@ -1,9 +1,9 @@
 """
 Generates realistic iOS UI screenshots for NewsFlow using live NewsAPI data.
-Outputs 4 PNG files into ../screenshots/
+Features the easter-egg breaking-news card as the hero article.
 """
 
-import os, sys, textwrap, math, warnings
+import os, sys, textwrap, warnings
 warnings.filterwarnings("ignore")
 
 import requests
@@ -13,355 +13,292 @@ API_KEY  = "4ed36b1d0c034715ac08b796267b39d3"
 OUT_DIR  = os.path.join(os.path.dirname(__file__), "..", "screenshots")
 os.makedirs(OUT_DIR, exist_ok=True)
 
-# ── Canvas ──────────────────────────────────────────────────────────────────
-W, H   = 390, 844          # iPhone 14 logical px
-SCALE  = 3                 # render at @3x then downsample
+W, H   = 390, 844
+SCALE  = 3
 CW, CH = W * SCALE, H * SCALE
 
-# ── Colors ──────────────────────────────────────────────────────────────────
-BG          = (242, 242, 247)   # systemGroupedBackground
-CARD        = (255, 255, 255)
-INDIGO      = (88,  86, 214)    # systemIndigo
-LABEL       = (0,   0,   0)
-SECONDARY   = (142, 142, 147)
-SEPARATOR   = (198, 198, 200)
-NAV_BG      = (249, 249, 249)
-TAB_BG      = (249, 249, 249)
-WHITE       = (255, 255, 255)
-RED         = (255,  59,  48)
-GREEN       = (52,  199,  89)
+# ── Colors
+BG       = (242, 242, 247)
+CARD     = (255, 255, 255)
+INDIGO   = (88,  86, 214)
+LABEL    = (0,   0,   0)
+SEC      = (142, 142, 147)
+SEP      = (198, 198, 200)
+NAV_BG   = (249, 249, 249)
+WHITE    = (255, 255, 255)
+RED      = (220,  38,  38)
+GREEN    = (52,  199,  89)
 
-# ── Fonts ────────────────────────────────────────────────────────────────────
-def load_font(size, bold=False):
-    candidates = [
-        f"/System/Library/Fonts/{'SFNSDisplay' if bold else 'SFNS'}.ttf",
-        f"/System/Library/Fonts/{'SFNSText-Bold' if bold else 'SFNSText'}.otf",
-        "/System/Library/Fonts/Helvetica.ttc",
-        "/System/Library/Fonts/HelveticaNeue.ttc",
-    ]
-    for path in candidates:
-        try:
-            return ImageFont.truetype(path, size * SCALE)
-        except Exception:
-            continue
-    return ImageFont.load_default()
-
-FONT_LG_BOLD  = load_font(34, bold=True)
-FONT_MD_BOLD  = load_font(17, bold=True)
-FONT_MD       = load_font(15)
-FONT_SM_BOLD  = load_font(13, bold=True)
-FONT_SM       = load_font(12)
-FONT_XS       = load_font(11)
-
-# ── Helpers ──────────────────────────────────────────────────────────────────
-def px(n):   return n * SCALE
+def px(n): return n * SCALE
 def rect(x,y,w,h): return [px(x), px(y), px(x+w), px(y+h)]
 
-def rounded_rect(draw, box, radius, fill, outline=None, outline_width=1):
-    x0,y0,x1,y1 = [int(v) for v in box]
-    r = int(radius * SCALE)
-    draw.rounded_rectangle([x0,y0,x1,y1], radius=r, fill=fill,
-                            outline=outline, width=int(outline_width*SCALE))
+def load_font(size, bold=False):
+    for path in [
+        f"/System/Library/Fonts/{'SFNSDisplay' if bold else 'SFNS'}.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/System/Library/Fonts/HelveticaNeue.ttc",
+    ]:
+        try: return ImageFont.truetype(path, size * SCALE)
+        except: continue
+    return ImageFont.load_default()
 
-def draw_text(draw, text, x, y, font, color=LABEL, anchor="la"):
-    draw.text((px(x), px(y)), text, font=font, fill=color, anchor=anchor)
+FB = load_font(34, True);  FM_B = load_font(17, True);  FM = load_font(15)
+FSB = load_font(13, True); FS  = load_font(12);         FXS = load_font(11)
+F20B = load_font(20, True); F22B = load_font(22, True)
 
-def wrap(text, max_chars):
-    return textwrap.fill(text, max_chars)
+def txt(draw, t, x, y, font, color=LABEL, anchor="la"):
+    draw.text((px(x), px(y)), t, font=font, fill=color, anchor=anchor)
 
-def draw_status_bar(draw):
+def rrect(draw, box, r, fill, outline=None, ow=1):
+    draw.rounded_rectangle([int(v) for v in box], radius=int(r*SCALE),
+                            fill=fill, outline=outline, width=int(ow*SCALE))
+
+def status_bar(draw):
     draw.rectangle([0, 0, CW, px(44)], fill=NAV_BG)
-    draw_text(draw, "9:41", W//2, 14, FONT_SM_BOLD, LABEL, anchor="mm")
-    # Battery
-    bx, by = px(W-46), px(10)
-    draw.rounded_rectangle([bx, by, bx+px(25), by+px(12)], radius=px(2), outline=LABEL, width=px(1))
-    draw.rectangle([bx+px(1), by+px(1), bx+px(20), by+px(11)], fill=GREEN)
-    # Signal dots
+    txt(draw, "9:41", W//2, 14, FSB, LABEL, "mm")
     for i in range(4):
-        h_bar = px(3 + i*2)
-        draw.rectangle([px(18+i*5), px(20)-h_bar, px(21+i*5), px(20)], fill=LABEL)
+        hb = px(3+i*2); draw.rectangle([px(18+i*5), px(20)-hb, px(21+i*5), px(20)], fill=LABEL)
+    bx, by = px(W-46), px(10)
+    draw.rounded_rectangle([bx,by,bx+px(25),by+px(12)], radius=px(2), outline=LABEL, width=px(1))
+    draw.rectangle([bx+px(1),by+px(1),bx+px(20),by+px(11)], fill=GREEN)
 
-def draw_nav_bar(draw, title, large=True, back=False):
-    draw.rectangle([0, px(44), CW, px(44 + (88 if large else 44))], fill=NAV_BG)
-    # Separator
-    draw.line([0, px(44+(88 if large else 44)), CW, px(44+(88 if large else 44))],
-              fill=SEPARATOR, width=px(1))
-    if large:
-        draw_text(draw, title, 18, 88, FONT_LG_BOLD, LABEL)
-    else:
-        draw_text(draw, title, W//2, 66, FONT_MD_BOLD, LABEL, anchor="mm")
-    if back:
-        draw_text(draw, "‹  Back", 18, 66, FONT_MD, INDIGO, anchor="lm")
+def nav_bar(draw, title, large=True, back=False):
+    h = 88 if large else 44
+    draw.rectangle([0, px(44), CW, px(44+h)], fill=NAV_BG)
+    draw.line([0, px(44+h), CW, px(44+h)], fill=SEP, width=px(1))
+    if large: txt(draw, title, 18, 88, FB, LABEL)
+    else:     txt(draw, title, W//2, 66, FM_B, LABEL, "mm")
+    if back:  txt(draw, "‹  Back", 18, 66, FM, INDIGO, "lm")
 
-def draw_tab_bar(draw, active=0):
-    tb_y = H - 83
-    draw.rectangle([0, px(tb_y), CW, CH], fill=TAB_BG)
-    draw.line([0, px(tb_y), CW, px(tb_y)], fill=SEPARATOR, width=px(1))
-    tabs = [("Headlines", "⊟"), ("Search", "⌕"), ("Bookmarks", "⊕")]
-    tab_w = W // len(tabs)
-    for i, (label, icon) in enumerate(tabs):
-        cx = tab_w * i + tab_w // 2
-        color = INDIGO if i == active else SECONDARY
-        draw_text(draw, icon, cx, tb_y + 12, FONT_MD_BOLD, color, anchor="mm")
-        draw_text(draw, label, cx, tb_y + 28, FONT_XS, color, anchor="mm")
+def tab_bar(draw, active=0):
+    ty = H - 83
+    draw.rectangle([0, px(ty), CW, CH], fill=NAV_BG)
+    draw.line([0, px(ty), CW, px(ty)], fill=SEP, width=px(1))
+    for i, (label, icon) in enumerate([("Headlines","⊟"),("Search","⌕"),("Bookmarks","⊕")]):
+        cx = W//(3) * i + W//6
+        c  = INDIGO if i == active else SEC
+        txt(draw, icon,  cx, ty+12, FM_B, c, "mm")
+        txt(draw, label, cx, ty+28, FXS,  c, "mm")
 
-def fetch_image(url, size):
-    """Download and resize an image, return PIL Image."""
+def fetch_img(url, size):
     try:
-        r = requests.get(url, timeout=8)
         from io import BytesIO
-        img = Image.open(BytesIO(r.content)).convert("RGB")
-        img = img.resize(size, Image.LANCZOS)
-        return img
-    except Exception:
-        return None
+        r = requests.get(url, timeout=8)
+        return Image.open(BytesIO(r.content)).convert("RGB").resize(size, Image.LANCZOS)
+    except: return None
 
-def placeholder_thumb(size=(px(80), px(80))):
-    img = Image.new("RGB", size, (200, 200, 205))
-    return img
+def placeholder(size, color=(180,180,200)):
+    return Image.new("RGB", size, color)
 
 def draw_card(draw, canvas, article, y, bookmark_filled=False):
-    """Draw a single article card at vertical position y."""
-    card_m = 16
-    card_h = 98
-    # Card shadow / background
-    shadow = Image.new("RGBA", (CW, px(card_h+4)), (0,0,0,0))
-    sdraw  = ImageDraw.Draw(shadow)
-    rounded_rect(sdraw, [px(card_m-2), px(2), px(W-card_m+2), px(card_h+2)],
-                 12, (0,0,0,18))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(px(3)))
-    canvas.paste(shadow, (0, px(y-2)), shadow)
+    m, ch = 16, 98
+    # Shadow
+    sh = Image.new("RGBA", (CW, px(ch+6)), (0,0,0,0))
+    ImageDraw.Draw(sh).rounded_rectangle(
+        [px(m-2), px(2), px(W-m+2), px(ch+2)], radius=px(12), fill=(0,0,0,18))
+    sh = sh.filter(ImageFilter.GaussianBlur(px(3)))
+    canvas.paste(sh, (0, px(y-2)), sh)
+    rrect(draw, rect(m, y, W-m*2, ch), 12, CARD)
 
-    rounded_rect(draw, rect(card_m, y, W-card_m*2, card_h), 12, CARD)
+    sz = (px(80), px(80))
+    thumb = fetch_img(article.get("urlToImage"), sz) or placeholder(sz)
+    mask  = Image.new("L", sz, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0,0,sz[0]-1,sz[1]-1], radius=px(8), fill=255)
+    canvas.paste(thumb, (px(m+9), px(y+9)), mask)
 
-    # Thumbnail
-    img_size = (px(80), px(80))
-    thumb = None
-    if article.get("urlToImage"):
-        thumb = fetch_image(article["urlToImage"], img_size)
+    for i, line in enumerate(textwrap.wrap((article.get("title") or "")[:80], 32)[:2]):
+        txt(draw, line, 118, y+12+i*19, FM_B, LABEL)
+    txt(draw, article.get("source",{}).get("name",""), 118, y+56, FSB, INDIGO)
+    txt(draw, (article.get("publishedAt") or "")[:10], 118, y+72, FXS, SEC)
+    bm_c = INDIGO if bookmark_filled else SEC
+    txt(draw, "■" if bookmark_filled else "□", W-m-14, y+ch//2, FM, bm_c, "mm")
+
+def draw_hero_card(draw, canvas, article, y, badge_text, badge_color):
+    """Full-width hero card with gradient overlay — the featured article."""
+    m, ch = 16, 240
+    # Shadow
+    sh = Image.new("RGBA", (CW, px(ch+8)), (0,0,0,0))
+    ImageDraw.Draw(sh).rounded_rectangle(
+        [px(m-3), px(3), px(W-m+3), px(ch+4)], radius=px(18), fill=(0,0,0,30))
+    sh = sh.filter(ImageFilter.GaussianBlur(px(5)))
+    canvas.paste(sh, (0, px(y-3)), sh)
+
+    # Hero image
+    sz    = (px(W - m*2), px(ch))
+    thumb = fetch_img(article.get("urlToImage"), sz)
     if thumb is None:
-        thumb = placeholder_thumb(img_size)
-    # Clip to rounded rect
-    mask = Image.new("L", img_size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0,0,img_size[0]-1,img_size[1]-1],
-                                            radius=px(8), fill=255)
-    canvas.paste(thumb, (px(card_m+9), px(y+9)), mask)
+        thumb = Image.new("RGB", sz, (80, 60, 180))
+    # Round-clip
+    clip_mask = Image.new("L", sz, 0)
+    ImageDraw.Draw(clip_mask).rounded_rectangle([0,0,sz[0]-1,sz[1]-1], radius=px(18), fill=255)
+    canvas.paste(thumb, (px(m), px(y)), clip_mask)
+
+    # Gradient overlay
+    grad = Image.new("RGBA", sz, (0,0,0,0))
+    gd   = ImageDraw.Draw(grad)
+    for row in range(sz[1]//3, sz[1]):
+        a = int(200 * (row - sz[1]//3) / (sz[1] * 2/3))
+        gd.line([(0,row),(sz[0],row)], fill=(0,0,0,min(a,200)))
+    thumb_rgba = thumb.convert("RGBA")
+    thumb_rgba.alpha_composite(grad)
+    canvas.paste(thumb_rgba.convert("RGB"), (px(m), px(y)), clip_mask)
+
+    draw = ImageDraw.Draw(canvas)
+
+    # Badge
+    bw = len(badge_text)*px(7) + px(20)
+    rrect(draw, [px(m+10), px(y+12), px(m+10)+bw, px(y+12)+px(22)], 6, badge_color)
+    txt(draw, badge_text, m+10+4, y+23, FXS, WHITE, "lm")
 
     # Title
-    title = (article.get("title") or "")[:80]
-    lines = textwrap.wrap(title, 32)[:2]
-    for li, line in enumerate(lines):
-        draw_text(draw, line, 118, y + 12 + li*19, FONT_MD_BOLD, LABEL)
+    title_lines = textwrap.wrap((article.get("title") or ""), 34)[:3]
+    title_y = y + ch - 72
+    for i, line in enumerate(title_lines):
+        txt(draw, line, m+12, title_y + i*24, F20B, WHITE)
 
     # Source
-    source = article.get("source", {}).get("name", "")
-    draw_text(draw, source, 118, y + 56, FONT_SM_BOLD, INDIGO)
-
-    # Date (simple)
-    pub = (article.get("publishedAt") or "")[:10]
-    draw_text(draw, pub, 118, y + 72, FONT_XS, SECONDARY)
+    txt(draw, "✦  " + article.get("source",{}).get("name",""), m+12, y+ch-14, FS, (220,220,255), "lm")
 
     # Bookmark
-    bm = "🔖" if bookmark_filled else "🔖"
-    bm_icon = "■" if bookmark_filled else "□"
-    bm_color = INDIGO if bookmark_filled else SECONDARY
-    draw_text(draw, bm_icon, W - card_m - 14, y + card_h//2, FONT_MD, bm_color, anchor="mm")
+    txt(draw, "□", W-m-18, y+18, FM_B, WHITE, "mm")
 
-
-# ── Fetch news ────────────────────────────────────────────────────────────────
 def fetch_headlines(category="general"):
     url = (f"https://newsapi.org/v2/top-headlines?"
            f"country=us&category={category}&pageSize=6&apiKey={API_KEY}")
     try:
         data = requests.get(url, timeout=10).json()
-        return [a for a in data.get("articles", []) if "[Removed]" not in a.get("title","")][:5]
-    except Exception:
-        return []
+        return [a for a in data.get("articles",[]) if "[Removed]" not in a.get("title","")][:5]
+    except: return []
 
-def fetch_search(q="technology"):
-    url = (f"https://newsapi.org/v2/everything?"
-           f"q={q}&sortBy=publishedAt&pageSize=4&apiKey={API_KEY}")
+def fetch_search(q="AI"):
+    url = (f"https://newsapi.org/v2/everything?q={q}&sortBy=publishedAt&pageSize=4&apiKey={API_KEY}")
     try:
         data = requests.get(url, timeout=10).json()
-        return [a for a in data.get("articles", []) if "[Removed]" not in a.get("title","")][:4]
-    except Exception:
-        return []
+        return [a for a in data.get("articles",[]) if "[Removed]" not in a.get("title","")][:4]
+    except: return []
 
-# ── Screen 1: Headlines ───────────────────────────────────────────────────────
+EASTER_EGG = {
+    "source": {"name": "Cairo Tech Daily 🗞"},
+    "author": "Newsroom",
+    "title": "Breaking: iOS Dev Abdelrahman Alfawakhry Applies to BlackStone eIT — Insiders Say It's a Perfect Match",
+    "description": "Cairo, Egypt — iOS developer Abdelrahman Alfawakhry has officially applied for the iOS Developer role at BlackStone eIT. Industry sources say it's 'a perfect match.'",
+    "url": "https://github.com/AlfawakhryDev/NewsFlow",
+    "urlToImage": None,
+    "publishedAt": "2026-05-11",
+}
+
 def screen_headlines(articles):
     canvas = Image.new("RGB", (CW, CH), BG)
     draw   = ImageDraw.Draw(canvas)
-
-    draw_status_bar(draw)
-    draw_nav_bar(draw, "Top Headlines", large=True)
+    status_bar(draw); nav_bar(draw, "Top Headlines")
 
     # Category chips
-    chip_y    = 138
-    chip_h    = 34
-    cats      = ["General", "Technology", "Business", "Science", "Health"]
-    cx        = 16
-    for i, cat in enumerate(cats):
-        tw    = len(cat) * 8 + 28
-        color = INDIGO if i == 0 else CARD
-        tc    = WHITE  if i == 0 else LABEL
-        bc    = INDIGO if i == 0 else SEPARATOR
-        rounded_rect(draw, rect(cx, chip_y, tw, chip_h), 17,
-                     fill=color, outline=bc, outline_width=1.5)
-        draw_text(draw, cat, cx + tw//2, chip_y + chip_h//2, FONT_SM_BOLD, tc, anchor="mm")
-        cx += tw + 8
+    chip_y, cx = 138, 16
+    for i, cat in enumerate(["General","Technology","Business","Science","Health"]):
+        tw = len(cat)*8+28
+        rrect(draw, rect(cx,chip_y,tw,34), 17,
+              INDIGO if i==0 else CARD,
+              outline=INDIGO if i==0 else SEP, ow=1.5)
+        txt(draw, cat, cx+tw//2, chip_y+17, FSB, WHITE if i==0 else LABEL, "mm")
+        cx += tw+8
 
-    # Article cards
-    card_y = 184
-    for article in articles[:4]:
-        draw_card(draw, canvas, article, card_y)
-        card_y += 110
+    # Easter egg as hero
+    draw_hero_card(draw, canvas, EASTER_EGG, 184, "🚨 BREAKING", RED)
+    # Regular cards below
+    cy = 184 + 252
+    for a in articles[:2]:
+        draw_card(draw, canvas, a, cy); cy += 110
 
-    draw_tab_bar(draw, active=0)
-    return canvas
+    tab_bar(draw, 0); return canvas
 
-# ── Screen 2: Article Detail ──────────────────────────────────────────────────
 def screen_detail(article):
-    canvas = Image.new("RGB", (CW, CH), (255,255,255))
+    canvas = Image.new("RGB", (CW, CH), WHITE)
     draw   = ImageDraw.Draw(canvas)
+    status_bar(draw); nav_bar(draw, article.get("source",{}).get("name",""), large=False, back=True)
 
-    draw_status_bar(draw)
-    draw_nav_bar(draw, article.get("source",{}).get("name",""), large=False, back=True)
-
-    # Hero image
-    hero_y, hero_h = 88, 200
-    hero = None
-    if article.get("urlToImage"):
-        hero = fetch_image(article["urlToImage"], (CW, px(hero_h)))
-    if hero is None:
-        hero = Image.new("RGB", (CW, px(hero_h)), (180, 180, 190))
-    # Darken bottom edge
-    overlay = Image.new("RGBA", hero.size, (0,0,0,0))
+    hero_y, hero_h = 88, 210
+    hero = fetch_img(article.get("urlToImage"), (CW, px(hero_h))) or \
+           Image.new("RGB", (CW, px(hero_h)), (80,60,180))
+    ov   = Image.new("RGBA", hero.size, (0,0,0,0))
     for row in range(hero.size[1]//2, hero.size[1]):
-        alpha = int(120 * (row - hero.size[1]//2) / (hero.size[1]//2))
-        overlay.paste((0,0,0,alpha), (0, row, hero.size[0], row+1))
-    hero = hero.convert("RGBA")
-    hero.alpha_composite(overlay)
-    canvas.paste(hero.convert("RGB"), (0, px(hero_y)))
+        a = int(130*(row-hero.size[1]//2)/(hero.size[1]//2))
+        ov.paste((0,0,0,a),(0,row,hero.size[0],row+1))
+    h2 = hero.convert("RGBA"); h2.alpha_composite(ov)
+    canvas.paste(h2.convert("RGB"), (0, px(hero_y)))
 
-    # Bookmark button (top right of nav)
-    draw_text(draw, "□", W-20, 66, FONT_MD_BOLD, INDIGO, anchor="mm")
+    draw = ImageDraw.Draw(canvas)
+    txt(draw, "□", W-20, 66, FM_B, INDIGO, "mm")
 
-    # Title
-    title = (article.get("title") or "")
-    title_y = hero_y + hero_h + 18
-    for i, line in enumerate(textwrap.wrap(title, 36)[:3]):
-        draw_text(draw, line, 18, title_y + i*28, FONT_MD_BOLD, LABEL)
+    ty = hero_y + hero_h + 18
+    for i, line in enumerate(textwrap.wrap(article.get("title",""), 36)[:3]):
+        txt(draw, line, 18, ty+i*28, FM_B, LABEL)
 
-    # Meta
-    meta_y = title_y + 100
-    source = article.get("source",{}).get("name","")
-    author = article.get("author") or ""
-    meta   = f"{source}  ·  {author[:30]}" if author else source
-    pub    = (article.get("publishedAt") or "")[:10]
-    draw_text(draw, meta, 18, meta_y, FONT_SM, SECONDARY)
-    draw_text(draw, pub,  18, meta_y+18, FONT_SM, SECONDARY)
+    my = ty + 96
+    src = article.get("source",{}).get("name","")
+    txt(draw, src + "  ·  " + (article.get("publishedAt","")[:10]), 18, my, FS, SEC)
 
-    # Description
-    desc = article.get("description") or article.get("content") or "No description available."
-    desc_y = meta_y + 50
-    for i, line in enumerate(textwrap.wrap(desc, 44)[:5]):
-        draw_text(draw, line, 18, desc_y + i*22, FONT_MD, LABEL)
+    dy = my + 36
+    for i, line in enumerate(textwrap.wrap(article.get("description","")[:300], 44)[:6]):
+        txt(draw, line, 18, dy+i*22, FM, LABEL)
 
-    # Read Full Article button
-    btn_y = desc_y + 130
-    rounded_rect(draw, rect(18, btn_y, W-36, 50), 14, INDIGO)
-    draw_text(draw, "Read Full Article →", W//2, btn_y+25, FONT_MD_BOLD, WHITE, anchor="mm")
+    btn_y = dy + 150
+    rrect(draw, rect(18,btn_y,W-36,50), 14, INDIGO)
+    txt(draw, "Read Full Article →", W//2, btn_y+25, FM_B, WHITE, "mm")
 
-    draw_tab_bar(draw, active=0)
-    return canvas
+    tab_bar(draw, 0); return canvas
 
-# ── Screen 3: Search ──────────────────────────────────────────────────────────
 def screen_search(articles):
     canvas = Image.new("RGB", (CW, CH), BG)
     draw   = ImageDraw.Draw(canvas)
+    status_bar(draw); nav_bar(draw, "Search")
+    rrect(draw, rect(16,138,W-32,36), 10, (228,228,230))
+    txt(draw, "⌕  Search articles…", 32, 156, FM, SEC, "lm")
+    cy = 186
+    for a in articles[:4]: draw_card(draw, canvas, a, cy); cy += 110
+    tab_bar(draw, 1); return canvas
 
-    draw_status_bar(draw)
-    draw_nav_bar(draw, "Search", large=True)
-
-    # Search bar
-    bar_y = 138
-    rounded_rect(draw, rect(16, bar_y, W-32, 36), 10, (228, 228, 230))
-    draw_text(draw, "⌕  Search articles…", 32, bar_y+18, FONT_MD, SECONDARY, anchor="lm")
-
-    card_y = 186
-    for article in articles[:4]:
-        draw_card(draw, canvas, article, card_y)
-        card_y += 110
-
-    draw_tab_bar(draw, active=1)
-    return canvas
-
-# ── Screen 4: Bookmarks ───────────────────────────────────────────────────────
 def screen_bookmarks(articles):
     canvas = Image.new("RGB", (CW, CH), BG)
     draw   = ImageDraw.Draw(canvas)
+    status_bar(draw); nav_bar(draw, "Bookmarks")
+    cy = 138
+    # Easter egg bookmarked first
+    draw_card(draw, canvas, EASTER_EGG, cy, bookmark_filled=True); cy += 110
+    for a in articles[:2]: draw_card(draw, canvas, a, cy, True); cy += 110
+    tab_bar(draw, 2); return canvas
 
-    draw_status_bar(draw)
-    draw_nav_bar(draw, "Bookmarks", large=True)
-
-    card_y = 138
-    for article in articles[:3]:
-        draw_card(draw, canvas, article, card_y, bookmark_filled=True)
-        card_y += 110
-
-    draw_tab_bar(draw, active=2)
-    return canvas
-
-# ── Main ──────────────────────────────────────────────────────────────────────
-def add_device_frame(canvas):
-    """Add a simple iPhone frame border."""
-    framed = Image.new("RGB", (CW + px(12), CH + px(24)), (30, 30, 32))
-    mask   = Image.new("L", framed.size, 0)
+def add_frame(canvas):
+    pad_x, pad_y = px(6), px(12)
+    frame = Image.new("RGB", (CW+pad_x*2, CH+pad_y*2), (28,28,30))
+    mask  = Image.new("L", frame.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle(
-        [0, 0, framed.size[0]-1, framed.size[1]-1], radius=px(44), fill=255)
-    base = Image.new("RGB", framed.size, (30, 30, 32))
-    base.paste(framed, mask=mask)
-    base.paste(canvas, (px(6), px(12)))
+        [0,0,frame.size[0]-1,frame.size[1]-1], radius=px(44), fill=255)
+    base = Image.new("RGB", frame.size, (28,28,30))
+    base.paste(frame, mask=mask)
+    base.paste(canvas, (pad_x, pad_y))
     # Dynamic Island
-    di_w, di_h = px(120), px(34)
-    di_x = (framed.size[0] - di_w) // 2
+    dw,dh = px(120),px(34)
+    dx = (frame.size[0]-dw)//2
     ImageDraw.Draw(base).rounded_rectangle(
-        [di_x, px(14), di_x+di_w, px(14)+di_h], radius=px(17), fill=(20,20,22))
+        [dx,pad_y-px(2),dx+dw,pad_y-px(2)+dh], radius=px(17), fill=(18,18,20))
     return base
 
 def save(img, name):
-    # Downsample from @3x to a nice display size
-    target_w = W + 12  # with frame margin
-    target_h = H + 24
-    img = img.resize((target_w * 2, target_h * 2), Image.LANCZOS)
-    path = os.path.join(OUT_DIR, f"{name}.png")
-    img.save(path, "PNG", optimize=True)
-    print(f"  ✓  {path}")
-    return path
+    img = img.resize(((W+12)*2,(H+24)*2), Image.LANCZOS)
+    p   = os.path.join(OUT_DIR, f"{name}.png")
+    img.save(p, "PNG", optimize=True)
+    print(f"  ✓  {p}")
 
 if __name__ == "__main__":
-    print("Fetching live news data…")
-    headlines_data  = fetch_headlines("general")
-    tech_data       = fetch_headlines("technology")
-    search_data     = fetch_search("AI")
+    print("Fetching live data…")
+    hl = fetch_headlines("general")
+    sr = fetch_search("AI")
+    if not hl: print("ERROR: no data"); sys.exit(1)
+    print(f"  {len(hl)} headlines, {len(sr)} search results")
 
-    bookmarks_data  = headlines_data[:3]
-
-    if not headlines_data:
-        print("ERROR: Could not fetch articles. Check API key / network.")
-        sys.exit(1)
-
-    print(f"Got {len(headlines_data)} headlines, {len(search_data)} search results")
-    print("Rendering screenshots…")
-
-    s1 = screen_headlines(headlines_data)
-    s2 = screen_detail(headlines_data[0])
-    s3 = screen_search(search_data or tech_data)
-    s4 = screen_bookmarks(bookmarks_data)
-
-    print("Saving…")
-    save(add_device_frame(s1), "1_headlines")
-    save(add_device_frame(s2), "2_detail")
-    save(add_device_frame(s3), "3_search")
-    save(add_device_frame(s4), "4_bookmarks")
+    print("Rendering…")
+    save(add_frame(screen_headlines(hl)),       "1_headlines")
+    save(add_frame(screen_detail(hl[0])),       "2_detail")
+    save(add_frame(screen_search(sr or hl)),    "3_search")
+    save(add_frame(screen_bookmarks(hl)),       "4_bookmarks")
     print("Done.")
