@@ -17,7 +17,7 @@ final class HeadlinesViewModel {
     static let easterEgg = Article(
         source: Article.Source(id: nil, name: "Cairo Tech Daily 🗞"),
         author: "Newsroom",
-        title: "Breaking: iOS Developer Abdelrahman Alfawakhry Applies to BlackStone eIT — Insiders Say It's a Perfect Match",
+        title: "Breaking: iOS Dev Alfawakhry Applies to BlackStone eIT — Insiders Call It a Perfect Match",
         description: """
         Cairo, Egypt — In a move that has the local tech scene buzzing, iOS developer \
         Abdelrahman Alfawakhry has officially applied for the iOS Developer position at \
@@ -29,7 +29,7 @@ final class HeadlinesViewModel {
         demonstrated in production. Watch this space.
         """,
         url: "https://github.com/AlfawakhryDev/NewsFlow",
-        urlToImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/640px-Camponotus_flavomarginatus_ant.jpg",
+        urlToImage: nil,
         publishedAt: ISO8601DateFormatter().string(from: Date()),
         content: nil
     )
