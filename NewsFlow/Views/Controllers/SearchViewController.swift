@@ -101,7 +101,7 @@ final class SearchViewController: UIViewController {
             case .empty:
                 self.activityIndicator.stopAnimating()
                 self.tableView.isHidden = true
-                self.emptyStateLabel.text = "No results for "\(self.viewModel.lastQuery)""
+                self.emptyStateLabel.text = "No results for \"\(self.viewModel.lastQuery)\""
                 self.emptyStateLabel.isHidden = false
             case .error(let msg):
                 self.activityIndicator.stopAnimating()

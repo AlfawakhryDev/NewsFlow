@@ -3,7 +3,7 @@ import UIKit
 enum Constants {
     enum API {
         // Get your free key at https://newsapi.org/register
-        static let newsAPIKey = "YOUR_NEWS_API_KEY_HERE"
+        static let newsAPIKey = "4ed36b1d0c034715ac08b796267b39d3"
         static let baseURL = "https://newsapi.org/v2"
     }
 

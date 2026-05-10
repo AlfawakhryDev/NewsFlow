@@ -6,11 +6,9 @@ A fully programmatic iOS news reader app built with UIKit, Core Data, Core Anima
 
 ## Screenshots
 
-> _Run in Xcode Simulator and replace these placeholders with your own screenshots._
-
 | Headlines | Article Detail | Search | Bookmarks |
 |:---------:|:--------------:|:------:|:---------:|
-| ![Headlines](https://placehold.co/200x400?text=Headlines) | ![Detail](https://placehold.co/200x400?text=Detail) | ![Search](https://placehold.co/200x400?text=Search) | ![Bookmarks](https://placehold.co/200x400?text=Bookmarks) |
+| ![Headlines](screenshots/1_headlines.png) | ![Detail](screenshots/2_detail.png) | ![Search](screenshots/3_search.png) | ![Bookmarks](screenshots/4_bookmarks.png) |
 
 ---
 
